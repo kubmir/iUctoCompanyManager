@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System.Threading.Tasks;
 using iUctoCompanyManager.Model;
 using System.Net;
+using System.Collections.Generic;
 
 namespace iUctoCompanyManager.Services
 {
@@ -17,25 +18,34 @@ namespace iUctoCompanyManager.Services
             client.BaseAddress = new Uri("https://online.iucto.cz/api/1.2/");
             // TODO: place iUcto API key here
             client.DefaultRequestHeaders.Add("X-Auth-Key", "");
-
         }
 
-        public async Task<InvoiceBase[]> GetInvoicesByDateAsync(string fromDate, string toDate)
+        public async Task<List<InvoiceBase>> GetInvoicesByDateAsync(string fromDate, string toDate)
         {
-            var url = $"invoice_issued?page=1&pageSize=200&date_from={fromDate}&date_to={toDate}";
+            List<InvoiceBase> toReturn = new List<InvoiceBase>();
+            var currentPage = 1;
+            var pageCount = 1;
 
-            var response = await client.GetAsync(url);
-
-            if (response?.StatusCode == HttpStatusCode.OK)
+            do
             {
-                var json = await response.Content.ReadAsStringAsync();
+                var url = $"invoice_issued?page={currentPage}&pageSize=100&date_from={fromDate}&date_to={toDate}";
+                var response = await client.GetAsync(url);
 
-                var invoices = JsonConvert.DeserializeObject<dynamic>(json)["_embedded"].invoice_issued;
+                if (response?.StatusCode == HttpStatusCode.OK)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var deserializedObject = JsonConvert.DeserializeObject<dynamic>(json);
 
-                return JsonConvert.DeserializeObject<InvoiceBase[]>(invoices.ToString());              
-            }
+                    pageCount = deserializedObject.pageCount;
+                    currentPage++;
 
-            return null;
+                    var invoices = deserializedObject["_embedded"].invoice_issued;
+
+                    toReturn.AddRange(JsonConvert.DeserializeObject<InvoiceBase[]>(invoices.ToString()));
+                }
+            } while (currentPage <= pageCount);
+
+            return toReturn;
         }
 
         public async Task<InvoiceDetail> GetInvoiceDetailAsync(string invoiceId)
@@ -50,7 +60,7 @@ namespace iUctoCompanyManager.Services
 
                 var invoice = JsonConvert.DeserializeObject<InvoiceDetail>(json);
 
-                Console.WriteLine($"Invoice {invoice.SequenceCode} loaded.");
+                Console.WriteLine($"Invoice {invoice.SequenceCode} from {invoice.Date} loaded.");
 
                 return invoice;
             }

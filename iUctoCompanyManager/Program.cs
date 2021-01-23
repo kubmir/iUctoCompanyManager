@@ -17,8 +17,8 @@ namespace iUctoCompanyManager
             var invoiceItemManager = new InvoiceItemManager();
             var csvExporter = new CsvExporter();
 
-            var baseInvoices = await loader.GetInvoicesByDateAsync("2020-12-01", "2020-12-31");
-            var items = await invoiceItemManager.GetAllItemsFromInvoices(baseInvoices);
+            var baseInvoices = await loader.GetInvoicesByDateAsync("2020-11-28", "2020-12-02");
+            var items = await invoiceItemManager.GetAllItemsFromInvoices(baseInvoices.ToArray());
 
             var grouppedItems = invoiceItemManager.GetGroupedItemsFromInvoices(items);
 
