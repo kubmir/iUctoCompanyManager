@@ -2,4 +2,4 @@
 Project for manipulation with invoices and accounting data from cloud accounting system iUcto.cz
 
 Current functionality:
-  * basic export of groupped items from issued invoices with the amount of sales per defined time period for each item
+  * export of sold items count groupped by month with total count as a last column
