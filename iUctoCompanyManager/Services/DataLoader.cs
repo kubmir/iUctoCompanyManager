@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using iUctoCompanyManager.Model;
 using System.Net;
 using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Serialization;
 
 namespace iUctoCompanyManager.Services
 {
@@ -28,7 +30,7 @@ namespace iUctoCompanyManager.Services
 
             do
             {
-                var url = $"invoice_issued?page={currentPage}&pageSize=100&date_from={fromDate}&date_to={toDate}";
+                var url = $"invoice_issued?page={currentPage}&pageSize=200&date_from={fromDate}&date_to={toDate}";
                 var response = await client.GetAsync(url);
 
                 if (response?.StatusCode == HttpStatusCode.OK)
@@ -67,5 +69,25 @@ namespace iUctoCompanyManager.Services
 
             return null;
         }
+
+        public async Task UpdateInvoice(string invoiceId, object invoice)
+        {
+            var url = $"invoice_issued/{invoiceId}";
+            var content = new StringContent(
+                JsonConvert.SerializeObject(invoice, Formatting.None, new JsonSerializerSettings() { ContractResolver = new CamelCasePropertyNamesContractResolver() }),
+                Encoding.UTF8,
+                "application/json"
+            );
+
+            var response = await client.PutAsync(url, content);
+
+            if (response?.StatusCode != HttpStatusCode.OK)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine(responseContent);
+            }
+        }
+
     }
 }

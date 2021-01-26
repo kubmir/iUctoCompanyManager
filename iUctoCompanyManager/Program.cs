@@ -8,10 +8,10 @@ namespace iUctoCompanyManager
     {
         public static void Main()
         {
-            MainAsync().GetAwaiter().GetResult();
+            MainAccounterAsync().GetAwaiter().GetResult();
         }
 
-        private static async Task MainAsync()
+        private static async Task MainExporterAsync()
         {
             var loader = new DataLoader();
             var invoiceItemManager = new InvoiceItemManager();
@@ -23,6 +23,13 @@ namespace iUctoCompanyManager
             var grouppedItems = invoiceItemManager.GetGroupedItemsFromInvoices(items);
 
             csvExporter.ExportDataToCsv(grouppedItems);
+        }
+
+        private static async Task MainAccounterAsync()
+        {
+            var accountingManager = new AccountingManager();
+            await accountingManager.AccountAllItemsAsGoods("2021-01-03", "2021-01-06");
+            Console.ReadKey();
         }
     }
 }
