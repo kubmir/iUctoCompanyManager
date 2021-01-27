@@ -8,7 +8,7 @@ namespace iUctoCompanyManager
     {
         public static void Main()
         {
-            MainAccounterAsync().GetAwaiter().GetResult();
+            MainExporterAsync().GetAwaiter().GetResult();
         }
 
         private static async Task MainExporterAsync()
@@ -17,12 +17,18 @@ namespace iUctoCompanyManager
             var invoiceItemManager = new InvoiceItemManager();
             var csvExporter = new CsvExporter();
 
-            var baseInvoices = await loader.GetInvoicesByDateAsync("2020-11-28", "2020-12-02");
-            var items = await invoiceItemManager.GetAllItemsFromInvoices(baseInvoices.ToArray());
+            var baseCreditNotes = await loader.GetCreditNotesByDateAsync("2020-01-01", "2020-02-28");
+            var creditNotesItems = await invoiceItemManager.GetAllItemsFromCreditNotes(baseCreditNotes.ToArray());
 
-            var grouppedItems = invoiceItemManager.GetGroupedItemsFromInvoices(items);
+            var baseInvoices = await loader.GetInvoicesByDateAsync("2020-01-01", "2020-01-31");
+            var invoiceItems = await invoiceItemManager.GetAllItemsFromInvoices(baseInvoices.ToArray());
+
+            invoiceItems.AddRange(creditNotesItems);
+
+            var grouppedItems = invoiceItemManager.GetGroupedItemsFromInvoices(invoiceItems);
 
             csvExporter.ExportDataToCsv(grouppedItems);
+            Console.WriteLine();
         }
 
         private static async Task MainAccounterAsync()

@@ -29,7 +29,32 @@ namespace iUctoCompanyManager.Services
                 {
                     Amount = item.Amount,
                     Text = item.Text,
-                    Month = invoiceDetail.Date.Split("-")[1]
+                    Month = invoiceDetail.Date.Split("-")[1],
+                    Type = ItemType.InvoiceItem,
+                });
+
+                items.AddRange(invoiceItemsWithDate);
+            }
+
+            return items;
+        }
+
+        public async Task<List<InvoiceItemWithDate>> GetAllItemsFromCreditNotes(CreditNoteBase[] creditNotes)
+        {
+            var items = new List<InvoiceItemWithDate>();
+
+            foreach (var creditNote in creditNotes)
+            {
+                var creditNotesItems = new List<InvoiceItem>();
+                var creditNoteDetail = await dataLoader.GetCreditNoteDetailAsync(creditNote.Id);
+
+                creditNotesItems.AddRange(creditNoteDetail?.Items);
+                var invoiceItemsWithDate = creditNotesItems.Select(item => new InvoiceItemWithDate
+                {
+                    Amount = item.Amount * (-1),
+                    Text = item.Text,
+                    Month = creditNoteDetail.Date.Split("-")[1],
+                    Type = ItemType.CreditNoteItem,
                 });
 
                 items.AddRange(invoiceItemsWithDate);
@@ -42,23 +67,28 @@ namespace iUctoCompanyManager.Services
         {
             var toReturn = new Dictionary<string, Dictionary<string, double>>();
 
-            items.GroupBy(item => new { item.Text, item.Month })
+            items.GroupBy(item => new { item.Text, item.Month, item.Type })
                 .Select(grouppedItems => new InvoiceItemWithDate
                 {
                     Text = grouppedItems.Key.Text,
                     Amount = grouppedItems.Sum(i => i.Amount),
-                    Month = grouppedItems.Key.Month
+                    Month = grouppedItems.Key.Month,
+                    Type = grouppedItems.Key.Type,
                 }
                 )
-                .GroupBy(item => item.Text)
-                .OrderBy(item => item.Key)
+                .GroupBy(item => new { item.Text, item.Type })
+                .OrderBy(item => item.Key.Text)
                 .ToList()
                 .ForEach(grouppedItem => {
-                        var months = new Dictionary<string, double>();
-                        grouppedItem.ToList().ForEach(item => months.Add(item.Month, item.Amount));
-                        toReturn.Add(grouppedItem.Key, months);
-                    }
-                );
+                    var months = toReturn.ContainsKey(grouppedItem.Key.Text)
+                        ? toReturn.GetValueOrDefault(grouppedItem.Key.Text)
+                        : new Dictionary<string, double>();
+
+                    grouppedItem.ToList().ForEach(item => months.Add($"{item.Month}-{item.Type}", item.Amount));
+
+                    if (!toReturn.ContainsKey(grouppedItem.Key.Text))
+                        toReturn.Add(grouppedItem.Key.Text, months);
+                });
 
             return toReturn;
         }

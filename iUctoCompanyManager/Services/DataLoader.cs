@@ -22,53 +22,17 @@ namespace iUctoCompanyManager.Services
             client.DefaultRequestHeaders.Add("X-Auth-Key", "");
         }
 
-        public async Task<List<InvoiceBase>> GetInvoicesByDateAsync(string fromDate, string toDate)
-        {
-            List<InvoiceBase> toReturn = new List<InvoiceBase>();
-            var currentPage = 1;
-            var pageCount = 1;
+        public Task<List<InvoiceBase>> GetInvoicesByDateAsync(string fromDate, string toDate)
+            => GetDocumentsByDateAsync<InvoiceBase>(fromDate, toDate, "invoice_issued");
 
-            do
-            {
-                var url = $"invoice_issued?page={currentPage}&pageSize=200&date_from={fromDate}&date_to={toDate}";
-                var response = await client.GetAsync(url);
+        public Task<List<CreditNoteBase>> GetCreditNotesByDateAsync(string fromDate, string toDate)
+            => GetDocumentsByDateAsync<CreditNoteBase>(fromDate, toDate, "creditnote_issued");
 
-                if (response?.StatusCode == HttpStatusCode.OK)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var deserializedObject = JsonConvert.DeserializeObject<dynamic>(json);
+        public Task<InvoiceDetail> GetInvoiceDetailAsync(string invoiceId)
+            => GetDocumentDetailAsync<InvoiceDetail>(invoiceId, "invoice_issued");
 
-                    pageCount = deserializedObject.pageCount;
-                    currentPage++;
-
-                    var invoices = deserializedObject["_embedded"].invoice_issued;
-
-                    toReturn.AddRange(JsonConvert.DeserializeObject<InvoiceBase[]>(invoices.ToString()));
-                }
-            } while (currentPage <= pageCount);
-
-            return toReturn;
-        }
-
-        public async Task<InvoiceDetail> GetInvoiceDetailAsync(string invoiceId)
-        {
-            var url = $"invoice_issued/{invoiceId}";
-
-            var response = await client.GetAsync(url);
-
-            if (response?.StatusCode == HttpStatusCode.OK)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-
-                var invoice = JsonConvert.DeserializeObject<InvoiceDetail>(json);
-
-                Console.WriteLine($"Invoice {invoice.SequenceCode} from {invoice.Date} loaded.");
-
-                return invoice;
-            }
-
-            return null;
-        }
+        public Task<CreditNote> GetCreditNoteDetailAsync(string creditNoteId)
+            => GetDocumentDetailAsync<CreditNote>(creditNoteId, "creditnote_issued");
 
         public async Task UpdateInvoice(string invoiceId, object invoice)
         {
@@ -89,5 +53,58 @@ namespace iUctoCompanyManager.Services
             }
         }
 
+        private async Task<T> GetDocumentDetailAsync<T>(string documentId, string document) where T : DocumentBase
+        {
+            var url = $"{document}/{documentId}";
+
+            var response = await client.GetAsync(url);
+
+            if (response?.StatusCode == HttpStatusCode.OK)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+
+                var loadedDocument = JsonConvert.DeserializeObject<T>(json);
+
+                Console.WriteLine($"Document {loadedDocument.SequenceCode} from {loadedDocument.Date} loaded.");
+
+                return loadedDocument;
+            } else
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine(responseContent);
+            }
+
+            return null;
+        }
+
+        private async Task<List<T>> GetDocumentsByDateAsync<T>(string fromDate, string toDate, string document)
+        {
+            List<T> toReturn = new List<T>();
+            var currentPage = 1;
+            var pageCount = 1;
+
+            do
+            {
+                var url = $"{document}?page={currentPage}&pageSize=200&date_from={fromDate}&date_to={toDate}";
+                var response = await client.GetAsync(url);
+
+                if (response?.StatusCode == HttpStatusCode.OK)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var deserializedObject = JsonConvert.DeserializeObject<dynamic>(json);
+
+                    pageCount = deserializedObject.pageCount;
+                    currentPage++;
+
+                    var documents = deserializedObject["_embedded"][document];
+
+                    toReturn.AddRange(JsonConvert.DeserializeObject<T[]>(documents.ToString()));
+                }
+            } while (currentPage <= pageCount);
+
+            return toReturn;
+
+        }
     }
 }

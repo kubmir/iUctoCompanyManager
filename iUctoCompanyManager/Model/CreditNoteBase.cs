@@ -2,7 +2,7 @@
 
 namespace iUctoCompanyManager.Model
 {
-    public class InvoiceBase : DocumentBase
+    public class CreditNoteBase : DocumentBase
     {
 
     }
